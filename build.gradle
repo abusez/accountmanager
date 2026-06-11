@@ -26,23 +26,11 @@ repositories {
     mavenCentral()
 }
 
-sourceSets {
-    main {
-        java {
-            srcDirs = ['src/overlay/java']
-        }
-        resources {
-            srcDirs = ['src/main/resources']
-        }
-    }
-}
-
 dependencies {
     provided 'com.google.code.gson:gson:2.8.9'
     compile 'org.apache.httpcomponents:httpclient:4.3.3'
     compile 'commons-io:commons-io:2.4'
     compile 'org.apache.commons:commons-lang3:3.3.2'
-    compile files('LumiereAccManager')
 }
 
 processResources {
@@ -60,45 +48,5 @@ processResources {
 }
 
 jar {
-    archiveName = "${mod_name}-${mod_version}-dev.jar"
-}
-
-task replicaJar(type: Jar, dependsOn: reobfJar) {
     archiveName = "${mod_name}-${mod_version}.jar"
-    destinationDir = file("$buildDir/libs")
-
-    from('LumiereAccManager') {
-        include 'me/**'
-        include 'callback.html'
-        include 'usernames.txt'
-        include 'accountmanager-ssl.jks'
-        include 'META-INF/**'
-        exclude 'me/ksyz/accountmanager/gui/GuiAddAccount.class'
-        exclude 'me/ksyz/accountmanager/gui/GuiRefreshTokenLogin.class'
-        exclude 'me/ksyz/accountmanager/gui/GuiCookieAuth.class'
-        exclude 'me/ksyz/accountmanager/auth/RefreshTokenAuth.class'
-        exclude 'me/ksyz/accountmanager/auth/CookieAuth.class'
-        exclude 'me/ksyz/accountmanager/auth/CookieAuth$McResponse.class'
-        exclude 'me/ksyz/accountmanager/auth/CookieAuth$ProfileResponse.class'
-    }
-
-    from(zipTree(jar.archivePath)) {
-        include 'me/ksyz/accountmanager/gui/GuiAddAccount.class'
-        include 'me/ksyz/accountmanager/gui/GuiRefreshTokenLogin.class'
-        include 'me/ksyz/accountmanager/gui/GuiCookieAuth.class'
-        include 'me/ksyz/accountmanager/auth/RefreshTokenAuth.class'
-        include 'me/ksyz/accountmanager/auth/CookieAuth.class'
-        include 'me/ksyz/accountmanager/auth/CookieAuth$*.class'
-    }
-
-    from(sourceSets.main.output) {
-        include 'mcmod.info'
-        include 'callback.html'
-        include 'usernames.txt'
-        include 'accountmanager-ssl.jks'
-    }
-
-    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 }
-
-build.dependsOn replicaJar

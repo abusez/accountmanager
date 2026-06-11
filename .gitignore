@@ -33,4 +33,5 @@ tools/
 *.env
 credentials.json
 
+# Legacy bytecode folder (no longer needed to build)
 LumiereAccManager/

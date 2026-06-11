@@ -53,19 +53,19 @@ extends GuiScreen {
         this.previousScreen = previousScreen;
     }
 
-    public void func_73866_w_() {
+    public void initGui() {
         Keyboard.enableRepeatEvents((boolean)true);
-        this.field_146292_n.clear();
-        this.loginButton = new GuiButton(0, this.field_146294_l / 2 - 100, this.field_146295_m / 2 + 30, 200, 20, "Login Account(s)");
-        this.field_146292_n.add(this.loginButton);
-        this.cancelButton = new GuiButton(1, this.field_146294_l / 2 - 100, this.field_146295_m / 2 + 55, 200, 20, "Cancel");
-        this.field_146292_n.add(this.cancelButton);
-        this.tokenField = new GuiTextArea(2, this.field_146289_q, this.field_146294_l / 2 - 100, this.field_146295_m / 2 - 60, 200, 80);
+        this.buttonList.clear();
+        this.loginButton = new GuiButton(0, this.width / 2 - 100, this.height / 2 + 30, 200, 20, "Login Account(s)");
+        this.buttonList.add(this.loginButton);
+        this.cancelButton = new GuiButton(1, this.width / 2 - 100, this.height / 2 + 55, 200, 20, "Cancel");
+        this.buttonList.add(this.cancelButton);
+        this.tokenField = new GuiTextArea(2, this.fontRendererObj, this.width / 2 - 100, this.height / 2 - 60, 200, 80);
         this.tokenField.setMaxStringLength(50000);
         this.tokenField.setFocused(true);
     }
 
-    public void func_146281_b() {
+    public void onGuiClosed() {
         Keyboard.enableRepeatEvents((boolean)false);
         if (this.task != null && !this.task.isDone()) {
             this.task.cancel(true);
@@ -75,9 +75,9 @@ extends GuiScreen {
         }
     }
 
-    protected void func_146284_a(GuiButton button) {
-        if (button.field_146124_l) {
-            switch (button.field_146127_k) {
+    protected void actionPerformed(GuiButton button) {
+        if (button.enabled) {
+            switch (button.id) {
                 case 0: {
                     String input = this.tokenField.getText().trim();
                     if (!input.isEmpty()) {
@@ -88,38 +88,38 @@ extends GuiScreen {
                     break;
                 }
                 case 1: {
-                    this.field_146297_k.func_147108_a(this.previousScreen);
+                    this.mc.displayGuiScreen(this.previousScreen);
                 }
             }
         }
     }
 
-    protected void func_73869_a(char typedChar, int keyCode) {
+    protected void keyTyped(char typedChar, int keyCode) {
         if (keyCode == 1) {
-            this.func_146284_a(this.cancelButton);
+            this.actionPerformed(this.cancelButton);
             return;
         }
         this.tokenField.textboxKeyTyped(typedChar, keyCode);
-        if (keyCode == 28 && GuiTokenLogin.func_146271_m() && !this.tokenField.getText().trim().isEmpty()) {
-            this.func_146284_a(this.loginButton);
+        if (keyCode == 28 && GuiTokenLogin.isCtrlKeyDown() && !this.tokenField.getText().trim().isEmpty()) {
+            this.actionPerformed(this.loginButton);
         }
     }
 
-    protected void func_73864_a(int mouseX, int mouseY, int mouseButton) throws IOException {
-        super.func_73864_a(mouseX, mouseY, mouseButton);
+    protected void mouseClicked(int mouseX, int mouseY, int mouseButton) throws IOException {
+        super.mouseClicked(mouseX, mouseY, mouseButton);
         this.tokenField.mouseClicked(mouseX, mouseY, mouseButton);
     }
 
-    public void func_73876_c() {
+    public void updateScreen() {
         this.tokenField.updateCursorCounter();
     }
 
-    public void func_73863_a(int mouseX, int mouseY, float partialTicks) {
-        this.func_146276_q_();
-        this.func_73732_a(this.field_146289_q, "\u00a7fLogin with Access Token(s)", this.field_146294_l / 2, this.field_146295_m / 2 - 90, 0xFFFFFF);
-        this.func_73732_a(this.field_146289_q, this.status, this.field_146294_l / 2, this.field_146295_m / 2 - 75, 0xAAAAAA);
+    public void drawScreen(int mouseX, int mouseY, float partialTicks) {
+        this.drawDefaultBackground();
+        this.drawCenteredString(this.fontRendererObj, "\u00a7fLogin with Access Token(s)", this.width / 2, this.height / 2 - 90, 0xFFFFFF);
+        this.drawCenteredString(this.fontRendererObj, this.status, this.width / 2, this.height / 2 - 75, 0xAAAAAA);
         this.tokenField.drawTextBox();
-        super.func_73863_a(mouseX, mouseY, partialTicks);
+        super.drawScreen(mouseX, mouseY, partialTicks);
     }
 
     private void processInputAndLogin(String fullInput) {
@@ -127,7 +127,7 @@ extends GuiScreen {
             this.executor = Executors.newFixedThreadPool(5);
         }
         this.status = "\u00a77Processing accounts...\u00a7r";
-        this.loginButton.field_146124_l = false;
+        this.loginButton.enabled = false;
         ArrayList<CompletableFuture<Void>> loginTasks = new ArrayList<CompletableFuture<Void>>();
         ArrayList<String> failedAccounts = new ArrayList<String>();
         ArrayList<String> successfulAccounts = new ArrayList<String>();
@@ -208,32 +208,34 @@ extends GuiScreen {
             return;
         }
         String finalToken = token;
-        CompletableFuture<Session> loginFuture = MicrosoftAuth.login(finalToken, this.executor);
-        CompletionStage currentTask = ((CompletableFuture)loginFuture.thenAcceptAsync(session -> {
-            String finalUsername = session.func_111285_a();
-            String finalUuid = session.func_148255_b();
-            Optional<Account> existingAccountOptional = AccountManager.accounts.stream().filter(acc -> acc.getAccessToken().equals(finalToken)).findFirst();
-            if (existingAccountOptional.isPresent()) {
-                Account accountToSave = existingAccountOptional.get();
-                accountToSave.setUsername(finalUsername);
-                accountToSave.setUuid(finalUuid);
-            } else {
-                Account accountToSave = new Account(finalUsername, finalToken, finalUuid);
-                AccountManager.accounts.add(accountToSave);
-            }
-            successfulAccounts.add(finalUsername);
-        }, (Executor)this.executor)).exceptionally(error -> {
-            String errorMessage = "Login failed!";
-            if (error != null) {
-                Throwable cause = error.getCause();
-                errorMessage = cause != null ? cause.getMessage() : error.getMessage();
-            }
-            String tokenPreview = finalToken.length() > 30 ? finalToken.substring(0, 30) + "..." : finalToken;
-            failedAccounts.add("\u00a7cFailed (" + errorMessage + ") for token: " + tokenPreview + "\u00a7r");
-            System.err.println("Error processing token: " + tokenPreview + " - " + errorMessage);
-            return null;
-        });
-        loginTasks.add((CompletableFuture<Void>)currentTask);
+        CompletableFuture<Void> currentTask = MicrosoftAuth.login(finalToken, this.executor)
+                .thenAcceptAsync(session -> {
+                    String finalUsername = session.getUsername();
+                    String finalUuid = session.getPlayerID();
+                    Optional<Account> existingAccountOptional = AccountManager.accounts.stream()
+                            .filter(acc -> acc.getAccessToken().equals(finalToken))
+                            .findFirst();
+                    if (existingAccountOptional.isPresent()) {
+                        Account accountToSave = existingAccountOptional.get();
+                        accountToSave.setUsername(finalUsername);
+                        accountToSave.setUuid(finalUuid);
+                    } else {
+                        AccountManager.accounts.add(new Account(finalUsername, finalToken, finalUuid));
+                    }
+                    successfulAccounts.add(finalUsername);
+                }, this.executor)
+                .exceptionally(error -> {
+                    String errorMessage = "Login failed!";
+                    if (error != null) {
+                        Throwable cause = error.getCause();
+                        errorMessage = cause != null ? cause.getMessage() : error.getMessage();
+                    }
+                    String tokenPreview = finalToken.length() > 30 ? finalToken.substring(0, 30) + "..." : finalToken;
+                    failedAccounts.add("\u00a7cFailed (" + errorMessage + ") for token: " + tokenPreview + "\u00a7r");
+                    System.err.println("Error processing token: " + tokenPreview + " - " + errorMessage);
+                    return null;
+                });
+        loginTasks.add(currentTask);
     }
 
     private void processAccountEntry(String trimmedEntry, List<CompletableFuture<Void>> loginTasks, List<String> failedAccounts, List<String> successfulAccounts) {
@@ -278,50 +280,61 @@ extends GuiScreen {
         String finalToken = token;
         String finalUsernameFromInput = usernameFromInput;
         String finalUuidFromInput = uuidFromInput;
-        CompletableFuture<Session> loginFuture = !StringUtils.isBlank(finalUsernameFromInput) && !StringUtils.isBlank(finalUuidFromInput) ? MicrosoftAuth.login(finalToken, finalUsernameFromInput, finalUuidFromInput, this.executor) : MicrosoftAuth.login(finalToken, this.executor);
-        CompletionStage currentTask = ((CompletableFuture)loginFuture.thenAcceptAsync(session -> {
-            String finalUsername = session.func_111285_a();
-            String finalUuid = session.func_148255_b();
-            Optional<Account> existingAccountOptional = AccountManager.accounts.stream().filter(acc -> acc.getAccessToken().equals(finalToken)).findFirst();
-            if (existingAccountOptional.isPresent()) {
-                Account accountToSave = existingAccountOptional.get();
-                accountToSave.setUsername(finalUsername);
-                accountToSave.setUuid(finalUuid);
-            } else {
-                Account accountToSave = new Account(finalUsername, finalToken, finalUuid);
-                AccountManager.accounts.add(accountToSave);
-            }
-            successfulAccounts.add(finalUsername);
-        }, (Executor)this.executor)).exceptionally(error -> {
-            String errorMessage = "Login failed!";
-            if (error != null) {
-                Throwable cause = error.getCause();
-                errorMessage = cause != null ? cause.getMessage() : error.getMessage();
-            }
-            failedAccounts.add("\u00a7cFailed (" + errorMessage + ") for: " + (finalUsernameFromInput != null ? finalUsernameFromInput : "Unknown Username/Invalid Token") + "\u00a7r");
-            System.err.println("Error processing account: " + trimmedEntry + " - " + errorMessage);
-            return null;
-        });
-        loginTasks.add((CompletableFuture<Void>)currentTask);
+        CompletableFuture<Session> loginFuture = !StringUtils.isBlank(finalUsernameFromInput) && !StringUtils.isBlank(finalUuidFromInput)
+                ? MicrosoftAuth.login(finalToken, finalUsernameFromInput, finalUuidFromInput, this.executor)
+                : MicrosoftAuth.login(finalToken, this.executor);
+        CompletableFuture<Void> currentTask = loginFuture
+                .thenAcceptAsync(session -> {
+                    String finalUsername = session.getUsername();
+                    String finalUuid = session.getPlayerID();
+                    Optional<Account> existingAccountOptional = AccountManager.accounts.stream()
+                            .filter(acc -> acc.getAccessToken().equals(finalToken))
+                            .findFirst();
+                    if (existingAccountOptional.isPresent()) {
+                        Account accountToSave = existingAccountOptional.get();
+                        accountToSave.setUsername(finalUsername);
+                        accountToSave.setUuid(finalUuid);
+                    } else {
+                        AccountManager.accounts.add(new Account(finalUsername, finalToken, finalUuid));
+                    }
+                    successfulAccounts.add(finalUsername);
+                }, this.executor)
+                .exceptionally(error -> {
+                    String errorMessage = "Login failed!";
+                    if (error != null) {
+                        Throwable cause = error.getCause();
+                        errorMessage = cause != null ? cause.getMessage() : error.getMessage();
+                    }
+                    failedAccounts.add("\u00a7cFailed (" + errorMessage + ") for: " + (finalUsernameFromInput != null ? finalUsernameFromInput : "Unknown Username/Invalid Token") + "\u00a7r");
+                    System.err.println("Error processing account: " + trimmedEntry + " - " + errorMessage);
+                    return null;
+                });
+        loginTasks.add(currentTask);
     }
 
     private void completeLoginProcess(List<CompletableFuture<Void>> loginTasks, List<String> failedAccounts, List<String> successfulAccounts) {
-        this.task = ((CompletableFuture)CompletableFuture.allOf(loginTasks.toArray(new CompletableFuture[0])).thenRunAsync(() -> {
-            AccountManager.save();
-            this.field_146297_k.func_152344_a(() -> {
-                String finalMessage = !successfulAccounts.isEmpty() && failedAccounts.isEmpty() ? String.format("\u00a7aSuccessfully logged in %d account(s)!\u00a7r", successfulAccounts.size()) : (successfulAccounts.isEmpty() && !failedAccounts.isEmpty() ? String.format("\u00a7cFailed to log in %d account(s).\u00a7r", failedAccounts.size()) : String.format("\u00a7aLogged in %d, \u00a7cfailed %d account(s).\u00a7r", successfulAccounts.size(), failedAccounts.size()));
-                this.field_146297_k.func_147108_a((GuiScreen)new GuiAccountManager(this.previousScreen, new Notification(TextFormatting.translate(finalMessage), 5000L)));
-                if (!failedAccounts.isEmpty()) {
-                    System.err.println("Failed account details:");
-                    failedAccounts.forEach(System.err::println);
-                }
-            });
-        }, this.executor)).exceptionally(totalError -> {
-            this.field_146297_k.func_152344_a(() -> {
-                this.status = "\u00a7cAn unexpected error occurred during batch processing.\u00a7r";
-                this.loginButton.field_146124_l = true;
-            });
-            return null;
-        });
+        this.task = CompletableFuture.allOf(loginTasks.toArray(new CompletableFuture[0]))
+                .thenRunAsync(() -> {
+                    AccountManager.save();
+                    this.mc.addScheduledTask(() -> {
+                        String finalMessage = !successfulAccounts.isEmpty() && failedAccounts.isEmpty()
+                                ? String.format("\u00a7aSuccessfully logged in %d account(s)!\u00a7r", successfulAccounts.size())
+                                : (successfulAccounts.isEmpty() && !failedAccounts.isEmpty()
+                                ? String.format("\u00a7cFailed to log in %d account(s).\u00a7r", failedAccounts.size())
+                                : String.format("\u00a7aLogged in %d, \u00a7cfailed %d account(s).\u00a7r", successfulAccounts.size(), failedAccounts.size()));
+                        this.mc.displayGuiScreen(new GuiAccountManager(this.previousScreen, new Notification(TextFormatting.translate(finalMessage), 5000L)));
+                        if (!failedAccounts.isEmpty()) {
+                            System.err.println("Failed account details:");
+                            failedAccounts.forEach(System.err::println);
+                        }
+                    });
+                }, this.executor)
+                .exceptionally(totalError -> {
+                    this.mc.addScheduledTask(() -> {
+                        this.status = "\u00a7cAn unexpected error occurred during batch processing.\u00a7r";
+                        this.loginButton.enabled = true;
+                    });
+                    return null;
+                });
     }
 }

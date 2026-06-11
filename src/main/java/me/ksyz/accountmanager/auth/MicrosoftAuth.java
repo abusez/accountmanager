@@ -40,6 +40,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.JsonPrimitive;
 import com.sun.net.httpserver.HttpServer;
+import java.io.IOException;
 import java.io.InputStream;
 import java.net.InetSocketAddress;
 import java.net.URI;
@@ -99,10 +100,15 @@ public final class MicrosoftAuth {
 
     public static CompletableFuture<String> acquireMSAuthCode(String state, Executor executor) {
         return CompletableFuture.supplyAsync(() -> {
-            HttpServer server = HttpServer.create(new InetSocketAddress(25575), 0);
+            HttpServer server;
+            try {
+                server = HttpServer.create(new InetSocketAddress(25575), 0);
+            } catch (IOException e) {
+                throw new CompletionException("Unable to start local auth server!", e);
+            }
             CountDownLatch latch = new CountDownLatch(1);
-            AtomicReference<Object> authCode = new AtomicReference<Object>(null);
-            AtomicReference<Object> errorMsg = new AtomicReference<Object>(null);
+            AtomicReference<String> authCode = new AtomicReference<String>(null);
+            AtomicReference<String> errorMsg = new AtomicReference<String>(null);
             server.createContext("/callback", exchange -> {
                 Map<String, String> query = URLEncodedUtils.parse((String)exchange.getRequestURI().toString().replaceAll("/callback\\?", ""), (Charset)StandardCharsets.UTF_8).stream().collect(Collectors.toMap(NameValuePair::getName, NameValuePair::getValue));
                 if (!state.equals(query.get("state"))) {
@@ -123,7 +129,11 @@ public final class MicrosoftAuth {
             try {
                 server.start();
                 latch.await();
-                String string = Optional.ofNullable(authCode.get()).filter(code -> !StringUtils.isBlank((CharSequence)code)).orElseThrow(() -> new Exception(Optional.ofNullable(errorMsg.get()).orElse("There was no auth code or error description present.")));
+                String string = Optional.ofNullable(authCode.get())
+                        .filter(code -> !StringUtils.isBlank(code))
+                        .orElseThrow(() -> new Exception(
+                                Optional.ofNullable(errorMsg.get()).orElse("There was no auth code or error description present.")
+                        ));
                 server.stop(2);
                 return string;
             }

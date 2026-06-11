@@ -49,20 +49,20 @@ extends GuiScreen {
         this.dotCount = 0;
     }
 
-    public void func_73866_w_() {
-        this.field_146292_n.clear();
+    public void initGui() {
+        this.buttonList.clear();
         int buttonWidth = 200;
         int buttonHeight = 20;
         int spacing = 5;
-        int centerX = this.field_146294_l / 2;
+        int centerX = this.width / 2;
         int startX = centerX - buttonWidth / 2;
-        int baseY = this.field_146295_m / 2 + this.field_146289_q.field_78288_b / 2 + this.field_146289_q.field_78288_b * 2;
+        int baseY = this.height / 2 + this.fontRendererObj.FONT_HEIGHT / 2 + this.fontRendererObj.FONT_HEIGHT * 2;
         this.openButton = new GuiButton(0, startX, baseY, buttonWidth, buttonHeight, "Open Link");
-        this.field_146292_n.add(this.openButton);
+        this.buttonList.add(this.openButton);
         this.copyButton = new GuiButton(1, startX, baseY + buttonHeight + spacing, buttonWidth, buttonHeight, "Copy Link");
-        this.field_146292_n.add(this.copyButton);
+        this.buttonList.add(this.copyButton);
         this.cancelButton = new GuiButton(2, startX, baseY + (buttonHeight + spacing) * 2, buttonWidth, buttonHeight, "Cancel");
-        this.field_146292_n.add(this.cancelButton);
+        this.buttonList.add(this.cancelButton);
         if (this.task == null) {
             this.status = "&fWaiting for login&r";
             if (this.executor == null) {
@@ -70,57 +70,67 @@ extends GuiScreen {
             }
             AtomicReference<String> refreshTokenRef = new AtomicReference<String>("");
             AtomicReference<String> accessTokenRef = new AtomicReference<String>("");
-            AtomicReference<String> uuidRef = new AtomicReference<String>("");
-            this.task = ((CompletableFuture)((CompletableFuture)((CompletableFuture)((CompletableFuture)((CompletableFuture)((CompletableFuture)MicrosoftAuth.acquireMSAuthCode(this.state, this.executor).thenComposeAsync(msAuthCode -> {
-                this.openButtonEnabled = false;
-                this.status = "&fAcquiring Microsoft access tokens&r";
-                return MicrosoftAuth.acquireMSAccessTokens(msAuthCode, this.executor);
-            })).thenComposeAsync(msAccessTokens -> {
-                this.status = "&fAcquiring Xbox access token.&r";
-                refreshTokenRef.set((String)msAccessTokens.get("refresh_token"));
-                return MicrosoftAuth.acquireXboxAccessToken((String)msAccessTokens.get("access_token"), this.executor);
-            })).thenComposeAsync(xboxAccessToken -> {
-                this.status = "&fAcquiring Xbox XSTS token&r";
-                return MicrosoftAuth.acquireXboxXstsToken(xboxAccessToken, this.executor);
-            })).thenComposeAsync(xboxXstsData -> {
-                this.status = "&fAcquiring Minecraft access token&r";
-                return MicrosoftAuth.acquireMCAccessToken((String)xboxXstsData.get("Token"), (String)xboxXstsData.get("uhs"), this.executor);
-            })).thenComposeAsync(mcToken -> {
-                this.status = "&fFetching your Minecraft profile&r";
-                accessTokenRef.set((String)mcToken);
-                return MicrosoftAuth.login(mcToken, this.executor);
-            })).thenAccept(session -> {
-                this.status = null;
-                this.cause = null;
-                Account acc = new Account((String)refreshTokenRef.get(), (String)accessTokenRef.get(), session.func_111285_a(), session.func_148255_b());
-                for (Account account : AccountManager.accounts) {
-                    if (!acc.getUsername().equals(account.getUsername())) continue;
-                    acc.setUnban(account.getUnban());
-                    break;
-                }
-                AccountManager.accounts.add(acc);
-                AccountManager.save();
-                SessionManager.set(session);
-                this.success = true;
-            })).exceptionally(error -> {
-                this.openButtonEnabled = true;
-                this.status = String.format("&cLogin failed!&r", new Object[0]);
-                this.cause = error.getCause() != null && error.getCause().getMessage() != null ? String.format("&cReason: %s&r", error.getCause().getMessage()) : String.format("&cUnknown error occurred.&r", new Object[0]);
-                return null;
-            });
+            this.task = MicrosoftAuth.acquireMSAuthCode(this.state, this.executor)
+                    .thenComposeAsync(msAuthCode -> {
+                        this.openButtonEnabled = false;
+                        this.status = "&fAcquiring Microsoft access tokens&r";
+                        return MicrosoftAuth.acquireMSAccessTokens(msAuthCode, this.executor);
+                    }, this.executor)
+                    .thenComposeAsync(msAccessTokens -> {
+                        this.status = "&fAcquiring Xbox access token.&r";
+                        refreshTokenRef.set(msAccessTokens.get("refresh_token"));
+                        return MicrosoftAuth.acquireXboxAccessToken(msAccessTokens.get("access_token"), this.executor);
+                    }, this.executor)
+                    .thenComposeAsync(xboxAccessToken -> {
+                        this.status = "&fAcquiring Xbox XSTS token&r";
+                        return MicrosoftAuth.acquireXboxXstsToken(xboxAccessToken, this.executor);
+                    }, this.executor)
+                    .thenComposeAsync(xboxXstsData -> {
+                        this.status = "&fAcquiring Minecraft access token&r";
+                        return MicrosoftAuth.acquireMCAccessToken(xboxXstsData.get("Token"), xboxXstsData.get("uhs"), this.executor);
+                    }, this.executor)
+                    .thenComposeAsync(mcToken -> {
+                        this.status = "&fFetching your Minecraft profile&r";
+                        accessTokenRef.set(mcToken);
+                        return MicrosoftAuth.login(mcToken, this.executor);
+                    }, this.executor)
+                    .thenAccept(session -> {
+                        this.status = null;
+                        this.cause = null;
+                        Account acc = new Account(refreshTokenRef.get(), accessTokenRef.get(), session.getUsername(), session.getPlayerID());
+                        for (Account account : AccountManager.accounts) {
+                            if (acc.getUsername().equals(account.getUsername())) {
+                                acc.setUnban(account.getUnban());
+                                break;
+                            }
+                        }
+                        AccountManager.accounts.add(acc);
+                        AccountManager.save();
+                        SessionManager.set(session);
+                        this.success = true;
+                    })
+                    .exceptionally(error -> {
+                        this.openButtonEnabled = true;
+                        this.status = "&cLogin failed!&r";
+                        Throwable cause = error.getCause();
+                        this.cause = cause != null && cause.getMessage() != null
+                                ? String.format("&cReason: %s&r", cause.getMessage())
+                                : "&cUnknown error occurred.&r";
+                        return null;
+                    });
         }
     }
 
-    public void func_146281_b() {
+    public void onGuiClosed() {
         if (this.task != null && !this.task.isDone()) {
             this.task.cancel(true);
             this.executor.shutdownNow();
         }
     }
 
-    public void func_73876_c() {
+    public void updateScreen() {
         if (this.success) {
-            this.field_146297_k.func_147108_a((GuiScreen)new GuiAccountManager(this.previousScreen, new Notification(TextFormatting.translate(String.format("&aSuccessful login! (%s)&r", SessionManager.get().func_111285_a())), 5000L)));
+            this.mc.displayGuiScreen((GuiScreen)new GuiAccountManager(this.previousScreen, new Notification(TextFormatting.translate(String.format("&aSuccessful login! (%s)&r", SessionManager.get().getUsername())), 5000L)));
             this.success = false;
         }
         if (this.status != null && !this.success && this.task != null && !this.task.isDone()) {
@@ -134,16 +144,16 @@ extends GuiScreen {
         }
     }
 
-    public void func_73863_a(int mouseX, int mouseY, float partialTicks) {
+    public void drawScreen(int mouseX, int mouseY, float partialTicks) {
         if (this.openButton != null) {
-            this.openButton.field_146124_l = this.openButtonEnabled;
+            this.openButton.enabled = this.openButtonEnabled;
         }
         if (this.copyButton != null) {
-            this.copyButton.field_146124_l = this.openButtonEnabled;
+            this.copyButton.enabled = this.openButtonEnabled;
         }
-        this.func_146276_q_();
-        super.func_73863_a(mouseX, mouseY, partialTicks);
-        this.func_73732_a(this.field_146289_q, "Microsoft Authentication", this.field_146294_l / 2, this.field_146295_m / 2 - this.field_146289_q.field_78288_b / 2 - this.field_146289_q.field_78288_b * 2, 0xAAAAAA);
+        this.drawDefaultBackground();
+        super.drawScreen(mouseX, mouseY, partialTicks);
+        this.drawCenteredString(this.fontRendererObj, "Microsoft Authentication", this.width / 2, this.height / 2 - this.fontRendererObj.FONT_HEIGHT / 2 - this.fontRendererObj.FONT_HEIGHT * 2, 0xAAAAAA);
         if (this.status != null) {
             String displayedStatus = this.status;
             if (this.task != null && !this.task.isDone() && this.cause == null) {
@@ -151,25 +161,25 @@ extends GuiScreen {
                     displayedStatus = displayedStatus + ".";
                 }
             }
-            this.func_73732_a(this.field_146289_q, TextFormatting.translate(displayedStatus), this.field_146294_l / 2, this.field_146295_m / 2 - this.field_146289_q.field_78288_b / 2, -1);
+            this.drawCenteredString(this.fontRendererObj, TextFormatting.translate(displayedStatus), this.width / 2, this.height / 2 - this.fontRendererObj.FONT_HEIGHT / 2, -1);
         }
         if (this.cause != null) {
-            this.func_73732_a(this.field_146289_q, TextFormatting.translate(this.cause), this.field_146294_l / 2, this.field_146295_m / 2 + this.field_146289_q.field_78288_b / 2 + this.field_146289_q.field_78288_b, 0xFFAAAA);
+            this.drawCenteredString(this.fontRendererObj, TextFormatting.translate(this.cause), this.width / 2, this.height / 2 + this.fontRendererObj.FONT_HEIGHT / 2 + this.fontRendererObj.FONT_HEIGHT, 0xFFAAAA);
         }
     }
 
-    protected void func_73869_a(char typedChar, int keyCode) {
+    protected void keyTyped(char typedChar, int keyCode) {
         if (keyCode == 1) {
-            this.func_146284_a(this.cancelButton);
+            this.actionPerformed(this.cancelButton);
         }
     }
 
-    protected void func_146284_a(GuiButton button) {
+    protected void actionPerformed(GuiButton button) {
         if (button == null) {
             return;
         }
-        if (button.field_146124_l) {
-            switch (button.field_146127_k) {
+        if (button.enabled) {
+            switch (button.id) {
                 case 0: {
                     SystemUtils.openWebLink(MicrosoftAuth.getMSAuthLink(this.state));
                     this.status = "&fPlease complete the login in your browser&r";
@@ -193,7 +203,7 @@ extends GuiScreen {
                     break;
                 }
                 case 2: {
-                    this.field_146297_k.func_147108_a(this.previousScreen);
+                    this.mc.displayGuiScreen(this.previousScreen);
                 }
             }
         }

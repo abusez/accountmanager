@@ -1,18 +1,11 @@
-/*
- * Decompiled with CFR 0.152.
- * 
- * Could not load the following classes:
- *  net.minecraft.client.Minecraft
- *  net.minecraft.util.Session
- */
 package me.ksyz.accountmanager.auth;
+
+import me.ksyz.accountmanager.AccountManager;
+import net.minecraft.client.Minecraft;
+import net.minecraft.util.Session;
 
 import java.lang.reflect.Field;
 import java.util.UUID;
-import me.ksyz.accountmanager.AccountManager;
-import me.ksyz.accountmanager.auth.SessionManager;
-import net.minecraft.client.Minecraft;
-import net.minecraft.util.Session;
 
 public class CrackedAuth {
     public static boolean login(String username) {
@@ -21,9 +14,9 @@ public class CrackedAuth {
             return false;
         }
         AccountManager.addCrackedAccount(username);
-        String uuid = CrackedAuth.getUUID(username);
+        String uuid = getUUID(username);
         Session session = new Session(username, uuid, "accessToken", "legacy");
-        CrackedAuth.setMinecraftSession(session);
+        setMinecraftSession(session);
         SessionManager.set(session);
         System.out.println("successfully logged in as: " + username);
         return true;
@@ -36,12 +29,11 @@ public class CrackedAuth {
 
     private static void setMinecraftSession(Session session) {
         try {
-            Minecraft mc = Minecraft.func_71410_x();
+            Minecraft mc = Minecraft.getMinecraft();
             Field sessionField = Minecraft.class.getDeclaredField("session");
             sessionField.setAccessible(true);
             sessionField.set(mc, session);
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             System.err.println("failed to set Minecraft session: " + e.getMessage());
             e.printStackTrace();
         }

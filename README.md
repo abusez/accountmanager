@@ -2,7 +2,7 @@
 
 A Forge 1.8.9 Minecraft account manager mod with Microsoft login, cookie login, access token login, refresh token login, and cracked/offline login.
 
-This project is a development replica of [Lumiere](https://github.com/xanning/Lumiere) with a working Gradle build environment and additional authentication fixes.
+Based on [Lumiere](https://github.com/xanning/Lumiere) with a full source tree and additional authentication fixes.
 
 ## Features
 
@@ -16,16 +16,14 @@ This project is a development replica of [Lumiere](https://github.com/xanning/Lu
 
 Requires **JDK 8**.
 
-Before building, extract the base mod from [Lumiere](https://github.com/xanning/Lumiere) into a `LumiereAccManager/` folder at the project root (unzip `LumiereAccManager.jar`).
-
 ```bash
-./gradlew replicaJar
+./gradlew build
 ```
 
 On Windows:
 
 ```bat
-gradlew.bat replicaJar
+gradlew.bat build
 ```
 
 The built mod JAR is written to `build/libs/AccountManager-1.8.jar`.
@@ -34,17 +32,13 @@ The built mod JAR is written to `build/libs/AccountManager-1.8.jar`.
 
 | Path | Purpose |
 |------|---------|
-| `src/overlay/java/` | Source changes compiled into the final JAR |
-| `src/reference/java/` | Decompiled reference source (not compiled directly) |
+| `src/main/java/` | Mod source code |
 | `src/main/resources/` | Mod metadata and resources |
-| `LumiereAccManager/` | Base mod bytecode from Lumiere (not in repo; extract from JAR locally) |
-
-Overlay classes replace matching classes from the base JAR during the `replicaJar` task.
 
 ## Credits
 
-- **[Lumiere](https://github.com/xanning/Lumiere)** — Original account manager mod (based on ksyz's Account Manager). This project uses its JAR contents as the mod base and reference implementation.
-- **[refresh-token-authentication](https://github.com/ravioli-a/refresh-token-authentication)** — Microsoft OAuth refresh token authentication flow used for refresh token login.
+- **[Lumiere](https://github.com/xanning/Lumiere)** — Original account manager mod (based on ksyz's Account Manager)
+- **[refresh-token-authentication](https://github.com/ravioli-a/refresh-token-authentication)** — Microsoft OAuth refresh token authentication flow used for refresh token login
 
 ## License
 

@@ -63,20 +63,20 @@ extends Gui {
         if (!this.isFocused) {
             return;
         }
-        if (GuiScreen.func_175278_g((int)keyCode)) {
+        if (GuiScreen.isKeyComboCtrlX((int)keyCode)) {
             this.cursorPosition = this.text.length();
             return;
         }
-        if (GuiScreen.func_175280_f((int)keyCode)) {
-            GuiScreen.func_146275_d((String)this.text);
+        if (GuiScreen.isKeyComboCtrlC((int)keyCode)) {
+            GuiScreen.setClipboardString((String)this.text);
             return;
         }
-        if (GuiScreen.func_175279_e((int)keyCode)) {
-            this.writeText(GuiScreen.func_146277_j());
+        if (GuiScreen.isKeyComboCtrlV((int)keyCode)) {
+            this.writeText(GuiScreen.getClipboardString());
             return;
         }
-        if (GuiScreen.func_175277_d((int)keyCode)) {
-            GuiScreen.func_146275_d((String)this.text);
+        if (GuiScreen.isKeyComboCtrlA((int)keyCode)) {
+            GuiScreen.setClipboardString((String)this.text);
             this.text = "";
             this.cursorPosition = 0;
             return;
@@ -122,7 +122,7 @@ extends Gui {
             }
             case 208: {
                 String[] lines = this.text.split("\\r?\\n", -1);
-                int lineHeight = this.fontRenderer.field_78288_b + 2;
+                int lineHeight = this.fontRenderer.FONT_HEIGHT + 2;
                 int maxVisibleLines = (this.height - 4) / lineHeight;
                 if (this.scrollOffset >= Math.max(0, lines.length - maxVisibleLines)) break;
                 ++this.scrollOffset;
@@ -161,16 +161,16 @@ extends Gui {
     }
 
     public void drawTextBox() {
-        GuiTextArea.func_73734_a((int)(this.x - 1), (int)(this.y - 1), (int)(this.x + this.width + 1), (int)(this.y + this.height + 1), (int)-6250336);
-        GuiTextArea.func_73734_a((int)this.x, (int)this.y, (int)(this.x + this.width), (int)(this.y + this.height), (int)-16777216);
+        GuiTextArea.drawRect((int)(this.x - 1), (int)(this.y - 1), (int)(this.x + this.width + 1), (int)(this.y + this.height + 1), (int)-6250336);
+        GuiTextArea.drawRect((int)this.x, (int)this.y, (int)(this.x + this.width), (int)(this.y + this.height), (int)-16777216);
         String[] lines = this.text.split("\\r?\\n", -1);
-        int lineHeight = this.fontRenderer.field_78288_b + 2;
+        int lineHeight = this.fontRenderer.FONT_HEIGHT + 2;
         int maxVisibleLines = (this.height - 4) / lineHeight;
         int totalLines = lines.length;
         if (this.scrollOffset > Math.max(0, totalLines - maxVisibleLines)) {
             this.scrollOffset = Math.max(0, totalLines - maxVisibleLines);
         }
-        int maxCharsPerLine = (this.width - 8) / (this.fontRenderer.field_78288_b / 2);
+        int maxCharsPerLine = (this.width - 8) / (this.fontRenderer.FONT_HEIGHT / 2);
         int displayLineIndex = 0;
         for (int i = this.scrollOffset; i < lines.length && displayLineIndex < maxVisibleLines; ++i) {
             String line = lines[i];
@@ -178,10 +178,10 @@ extends Gui {
             while (lineStart < line.length() && displayLineIndex < maxVisibleLines) {
                 int lineEnd = Math.min(lineStart + maxCharsPerLine, line.length());
                 String displayPart = line.substring(lineStart, lineEnd);
-                while (this.fontRenderer.func_78256_a(displayPart) > this.width - 8 && displayPart.length() > 0) {
+                while (this.fontRenderer.getStringWidth(displayPart) > this.width - 8 && displayPart.length() > 0) {
                     displayPart = displayPart.substring(0, displayPart.length() - 1);
                 }
-                this.fontRenderer.func_78276_b(displayPart, this.x + 4, this.y + 4 + displayLineIndex * lineHeight, 0xE0E0E0);
+                this.fontRenderer.drawString(displayPart, this.x + 4, this.y + 4 + displayLineIndex * lineHeight, 0xE0E0E0);
                 lineStart = lineEnd;
                 ++displayLineIndex;
             }
@@ -193,10 +193,10 @@ extends Gui {
             String[] linesBeforeCursor = textBeforeCursor.split("\\r?\\n", -1);
             int cursorLine = linesBeforeCursor.length - 1;
             String currentLine = linesBeforeCursor[linesBeforeCursor.length - 1];
-            int cursorX = this.x + 4 + this.fontRenderer.func_78256_a(currentLine);
+            int cursorX = this.x + 4 + this.fontRenderer.getStringWidth(currentLine);
             int cursorY = this.y + 4 + (cursorLine - this.scrollOffset) * lineHeight;
             if (cursorLine >= this.scrollOffset && cursorLine < this.scrollOffset + maxVisibleLines) {
-                GuiTextArea.func_73734_a((int)cursorX, (int)(cursorY - 1), (int)(cursorX + 1), (int)(cursorY + this.fontRenderer.field_78288_b), (int)-3092272);
+                GuiTextArea.drawRect((int)cursorX, (int)(cursorY - 1), (int)(cursorX + 1), (int)(cursorY + this.fontRenderer.FONT_HEIGHT), (int)-3092272);
             }
         }
     }
