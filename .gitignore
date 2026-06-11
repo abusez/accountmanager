@@ -1,0 +1,36 @@
+# Gradle
+build/
+.gradle/
+
+# IDE
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+.settings/
+.classpath
+.project
+bin/
+out/
+
+# Minecraft / Forge
+run/
+logs/
+crash-reports/
+eclipse/
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Local tooling clones
+tools/
+
+# Secrets / local config (do not commit)
+.env
+*.env
+credentials.json
+
+LumiereAccManager/
